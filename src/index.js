@@ -1,6 +1,3 @@
-import merge from 'deepmerge'
-
-
 function QuadraticPhotoMosaic(container, imageUrls, opts) {
   const Data = {
     container: null,
@@ -10,16 +7,13 @@ function QuadraticPhotoMosaic(container, imageUrls, opts) {
     maxH: null,
   }
 
-  const options = merge({
+  const options = {
     editable: false,
-    sizes: {
-      gutter: 5,
-      containerMaxWidth: null,
-      containerMaxHeight: 0.8,
-      firstThumbMaxWidth: 0.666,
-      firstThumbMaxHeight: 0.666,
-    }
-  }, opts || {})
+    gutter: 5,
+    onImageClick: null,
+    onShowMore: null,
+    ...(opts || {})
+  }
 
 
   function size (value) {
@@ -30,31 +24,38 @@ function QuadraticPhotoMosaic(container, imageUrls, opts) {
   function renderThumb ({ img, width, height }, isLastChild) {
     const thumb = document.createElement('div')
 
-    thumb.style.width  = size(width - options.sizes.gutter)
-    thumb.style.height = size(height - options.sizes.gutter)
+    thumb.style.width  = size(width - options.gutter)
+    thumb.style.height = size(height - options.gutter)
 
     thumb.style.backgroundImage      = `url(${ img.src })`
     thumb.style.backgroundSize       = 'cover'
     thumb.style.backgroundPosition   = 'center'
 
-    thumb.style.marginTop  = size(options.sizes.gutter)
-    thumb.style.marginLeft = size(options.sizes.gutter)
+    thumb.style.marginTop   = size(options.gutter)
+    thumb.style.marginLeft  = size(options.gutter)
 
-    thumb.style.position   = 'relative'
-    thumb.style.overflow   = 'hidden'
-    thumb.style.float      = 'left'
+    thumb.style.cursor      = 'pointer'
+    thumb.style.position    = 'relative'
+    thumb.style.overflow    = 'hidden'
+    thumb.style.float       = 'left'
+
+    if (!isLastChild || imageUrls.length <= 5) {
+      if (typeof options.onImageClick == 'function') {
+        thumb.addEventListener('click', () => options.onImageClick(img.index))
+      }
+    }
 
     if (isLastChild && imageUrls.length > 5) {
       const moreButton = document.createElement('div')
 
-      moreButton.style.width  = size(width - options.sizes.gutter)
-      moreButton.style.height = size(height - options.sizes.gutter)
+      moreButton.style.width  = size(width - options.gutter)
+      moreButton.style.height = size(height - options.gutter)
 
       moreButton.style.backgroundColor = 'rgba(0,0,0, 0.35)'
       moreButton.style.transition = 'all 0.13s linear'
       moreButton.style.cursor = 'pointer'
 
-      moreButton.style.lineHeight = size(height - options.sizes.gutter)
+      moreButton.style.lineHeight = size(height - options.gutter)
       moreButton.style.textAlign  = 'center'
       moreButton.style.fontSize   = size(36)
       moreButton.style.color      = '#fff'
@@ -70,9 +71,9 @@ function QuadraticPhotoMosaic(container, imageUrls, opts) {
         moreButton.style.backgroundColor  = 'rgba(0,0,0, 0.35)'
       })
 
-      moreButton.addEventListener('click', () => {
-        moreButton.style.backgroundColor  = 'rgba(0,0,0, 0.6)'
-      })
+      if (typeof options.onShowMore == 'function') {
+        moreButton.addEventListener('click', () => options.onShowMore(img.index))
+      }
 
       thumb.appendChild(moreButton)
     }
@@ -83,12 +84,12 @@ function QuadraticPhotoMosaic(container, imageUrls, opts) {
   function renderThumbs () {
     const subContainer = document.createElement('div')
 
-    subContainer.style.marginTop  = size(-1 * options.sizes.gutter)
-    subContainer.style.marginLeft = size(-1 * options.sizes.gutter)
+    subContainer.style.marginTop  = size(-1 * options.gutter)
+    subContainer.style.marginLeft = size(-1 * options.gutter)
     subContainer.style.overflow = 'hidden'
 
 
-  	Data.thumbs.forEach((thumb, index) => {
+    Data.thumbs.forEach((thumb, index) => {
       subContainer.appendChild(renderThumb(thumb, index == Data.thumbs.length - 1))
     })
 
@@ -101,7 +102,7 @@ function QuadraticPhotoMosaic(container, imageUrls, opts) {
     const width   = Data.containerWidth * sizes[0]
     const height  = sizes[1] == 'auto' ? width : Data.containerWidth * sizes[1]
 
-  	return {
+    return {
       img,
       width,
       height,
@@ -109,7 +110,7 @@ function QuadraticPhotoMosaic(container, imageUrls, opts) {
   }
 
   function processThumbs () {
-    Data.containerWidth = Data.container.width + options.sizes.gutter
+    Data.containerWidth = Math.floor(Data.container.width - options.gutter)
 
     const count         = Data.images.length
     const combination   = Data.images.reduce((res, curr) => res += curr.orient, '')
@@ -161,7 +162,7 @@ function QuadraticPhotoMosaic(container, imageUrls, opts) {
   }
 
   function setImageIndexes () {
-    Data.images.map((img, index) => {
+    Data.images.forEach((img, index) => {
       img.index = index
     })
   }
